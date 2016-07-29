@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <title>js读取Excel</title>
+
+
+    <script src="js/xlsx.full.min.js"></script>
+    <!--<script lang="javascript" src="js/xlsx.core.min.js"></script>-->
+    <!--<script type="text/javascript" src="js/shim.js"></script>-->
+
+    <!--<script src="http://libs.baidu.com/jquery/1.10.2/jquery.js"></script>-->
+    <style>
+        table { border-collapse:collapse; border-spacing:0;}
+        .productInfo tr td {border:1px solid #ddd;white-space: nowrap;padding:5px 10px;}
+    </style>
+</head>
+<body>
+
+    <input type="file" id="upfile"  />
+    <div id="out"></div>
+
+</body>
+<script>
+    //数组去重
+    Array.prototype.unique = function(){
+        var res = [];
+        var json = {};
+        for(var i = 0; i < this.length; i++){
+            if(!json[this[i]]){
+                res.push(this[i]);
+                json[this[i]] = 1;
+            }
+        }
+        return res;
+    }
+
+    var X = XLSX;
+    var file = document.getElementById('upfile');
+    var out = document.getElementById('out');
+    var output = '';
+
+    function handleFile(e) {
+        var files = e.target.files;
+        var i,f;
+        for (i = 0, f = files[i]; i != files.length; ++i) {
+            var reader = new FileReader();
+            var name = f.name;
+            reader.onload = function(e) {
+                var data = e.target.result;
+                var workbook = XLSX.read(data, {type: 'binary'});
+
+                /* DO SOMETHING WITH workbook HERE */
+                var result = '';
+
+                var tmp = X.utils.sheet_to_formulae(workbook.Sheets[workbook.SheetNames[0]]);
+                var maxRowCount = 0;//记录行数（也就是excel中数据最多那一列所占的行数）
+                var tmpRowCount = 0;//临时行数（为了以下计算出最大行数，即maxRowCount）
+                var arrayTitle = [];//记录字母（也就是excel中的列）
+                var obj = {};
+                for(var i=0;i<tmp.length;i++){
+                    tmpRowCount = parseInt(tmp[i].split('=')[0].substr(1,tmp[i].split('=')[0].length-1));
+                    if(tmpRowCount >= maxRowCount){
+                        maxRowCount = tmpRowCount;
+                    }
+                    obj[tmp[i].split('=')[0]]=tmp[i].split('=')[1];
+                    arrayTitle.push(tmp[i].split('=')[0].charAt(0));
+                }
+                arrayTitle = arrayTitle.unique();//数组去重
+
+                result += '<table class="productInfo">';
+
+
+                    for(var i=1;i<=maxRowCount;i++) {
+                        result += '<tr>';
+                        for(var j=0;j<arrayTitle.length;j++) {
+                            if(obj.hasOwnProperty(arrayTitle[j]+i)){
+                                result += '<td><input type="text" value="'+obj[arrayTitle[j] + i].replace('\'','')+'" /></td>';
+                            }else{
+                                result += '<td></td>';
+                            }
+                        }
+                        result += '</tr>';
+                    }
+
+
+                result += '</table>';
+                out.innerHTML = result;
+            };
+            reader.readAsBinaryString(f);
+        }
+    }
+    file.addEventListener('change', handleFile, false);
+
+</script>
+</html>
